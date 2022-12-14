@@ -33,45 +33,80 @@ namespace Parsing
                 List<string> proxyIp = new List<string>();
                 List<string> proxyPort = new List<string>();
                 string url = "";
+                string username = "";
+                string password = "";
 
-                var lines = File.ReadAllLines(@"C:\MyFolder\VSProjects\Parsing\Test.txt");
+                var lines = File.ReadAllLines("Proxies.txt");
 
-                for (int i = 0; i < lines.Length; i++) // Adding proxies from file
+                if (lines.Length > 0)
                 {
-                    string ip = "";
-                    string port = "";
-                    string text = lines[i];
-
-                    for (int t = 0; t < text.Length; t++)
+                    for (int i = 0; i < lines.Length; i++) // Adding proxies from file
                     {
-                        if (text[t] == ' ')
-                        {
-                            for (int j = 0; j < t; j++)
-                                ip += text[j];
-                            proxyIp.Add(ip);
-                            port = text.Remove(0, t + 1);
-                            proxyPort.Add(port);
-                        }
-                    }
+                        string ip = "";
+                        string port = "";
+                        string text = lines[i];
+                        int count = 0;
 
+                        for (int t = 0; t < text.Length && count <= 3; t++)
+                        {
+                            if (text[t] == ' ' && count == 0)
+                            {
+                                for (int j = 0; j < t; j++)
+                                    ip += text[j];
+                                proxyIp.Add(ip);
+                                text = text.Remove(0, t + 1);
+                                t = 0;
+                                count++;
+                            }
+                            else if (text[t] == ' ' && count == 1)
+                            {
+                                for (int j = 0; j < t; j++)
+                                    port += text[j];
+                                proxyPort.Add(port);
+                                text = text.Remove(0, t + 1);
+                                t = 0;
+                                count++;
+                            }
+                            else if (text[t] == ' ' && count == 2)
+                            {
+                                for (int j = 0; j < t; j++)
+                                    username += text[j];
+                                text = text.Remove(0, t + 1);
+                                t = 0;
+                                count++;
+                            }
+                            else if (count == 3)
+                            {
+                                for (int j = 0; j < text.Length; j++)
+                                    password += text[j];
+                                count++;
+                            }
+                        }
+
+                    }
                 }
 
                 for (int i = 0; i < 20; i++) // Request for every page
                 {
-                    var proxy = new WebProxy
-                    {
-                        Address = new Uri($"http://{proxyIp[i % 3]}:{proxyPort[i % 3]}"), // rotate proxies every page
-                        BypassProxyOnLocal = false,
-                        UseDefaultCredentials = false,
-                        Credentials = new NetworkCredential(
-                            userName: "", // Enter login
-                            password: "") // Enter password
-                    };
+                    var handler = new HttpClientHandler();
 
-                    var handler = new HttpClientHandler()
+                    if (proxyIp.Count > 0)
                     {
-                        Proxy = proxy,
-                    };
+                        var proxy = new WebProxy
+                        {
+                            Address = new Uri($"http://{proxyIp[i % 3]}:{proxyPort[i % 3]}"), // rotate proxies every page
+                            BypassProxyOnLocal = false,
+                            UseDefaultCredentials = false,
+                            Credentials = new NetworkCredential(
+                                userName: username, // Enter login
+                                password: password) // Enter password
+                        };
+
+                        handler = new HttpClientHandler()
+                        {
+                            Proxy = proxy,
+                        };
+                    }
 
                     var client = new HttpClient(handler: handler, disposeHandler: true);
                     client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.14; rv:68.0) Gecko/20100101 Firefox/68.0");
@@ -93,13 +128,13 @@ namespace Parsing
 
                     if (title == "Ой!")
                     {
-                        Console.Write("Captcha has shown up! Abort mission!");
+                        Console.Write("Captcha has shown up! Abort mission!\n");
                         return;
                     }
 
                     var films = doc.GetElementsByClassName("styles_root__ti07r");
 
-                    using (var writer = new StreamWriter(@"C:\MyFolder\VSProjects\Parsing\TestFilms.txt", true)) //Found information write down to file
+                    using (var writer = new StreamWriter("TestFilms.txt", true)) // Write down found information to file
                     {
                         foreach (var film in films)
                         {
@@ -108,7 +143,7 @@ namespace Parsing
                             times.Add(film.GetElementsByClassName("desktop-list-main-info_secondaryText__M_aus")[0].TextContent.Trim());
                             directors.Add(film.GetElementsByClassName("desktop-list-main-info_truncatedText__IMQRP")[0].TextContent.Trim());
 
-                            if (film.GetElementsByClassName("styles_rating__LU3_x").Length == 0)
+                            if (film.GetElementsByClassName("styles_kinopoisk__JZttS").Length == 0)
                             {
                                 scores.Add("Оценок у фильма пока нет");
                                 numberOfMarks.Add("0");
