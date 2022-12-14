@@ -1,0 +1,1 @@
+AngleSharp.Html.Dom.HtmlSpanElement
