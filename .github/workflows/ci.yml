@@ -1,15 +1,21 @@
-name: "Tests"
+name: ci
 
 on:
-  pull_request:
   push:
-    branches: # array of glob patterns matching against refs/heads. Optional; defaults to all
- - main  # triggers on pushes that contain changes in main
+    branch:
+      - master
+  pull_request:
 
 jobs:
-  test:
+  build_test:
+    name: build_test
     runs-on: ubuntu-latest
     steps:
- - uses: actions/checkout@v1
- - run: npm ci
- - run: npm test
+      - name: checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: build
+        run: make build
+      - name: test
+        run: make test
